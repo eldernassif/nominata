@@ -1,0 +1,31 @@
+{
+  "name": "nominata",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "verify": "npm run verify:types && npm run verify:lint && npm run verify:db && npm run verify:unit && npm run verify:contrato && npm run verify:e2e",
+    "verify:rapido": "npm run verify:types && npm run verify:unit",
+    "verify:types": "tsc --noEmit",
+    "verify:lint": "eslint . --max-warnings=0",
+    "verify:db": "supabase db lint --level error --fail-on error && supabase test db",
+    "verify:unit": "vitest run --project unit",
+    "verify:contrato": "vitest run --project contrato",
+    "verify:e2e": "playwright test",
+    "verify:rls-mutacao": "tsx scripts/rls-mutacao.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^26.2.0",
+    "eslint": "^10.8.1",
+    "prettier": "^3.9.6",
+    "supabase": "2.114.0",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.67.0",
+    "vitest": "^4.1.10"
+  }
+}

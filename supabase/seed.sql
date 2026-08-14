@@ -1,0 +1,1 @@
+-- Seed local/CI. Dados ficticios apenas; nunca dado real de prospect.
