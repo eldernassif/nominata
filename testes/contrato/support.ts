@@ -1,7 +1,8 @@
 // infra de teste de contrato (plano §9.5): conexão direta via pg para a
 // fábrica/verificação de dados e JWT assinado para falar com o PostgREST
-// local como o app falaria. Nenhum segredo real aqui: o jwt_secret local é o
-// default público do stack supabase local quando o config.toml não o define.
+// local como o app falaria. Nenhum segredo real aqui: o jwt_secret local é
+// um valor de desenvolvimento definido no supabase/config.toml do repo,
+// distinto do fallback embutido do stack (F0.4.1).
 import { createHmac, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import * as pg from 'pg';

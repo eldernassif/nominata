@@ -154,6 +154,11 @@ max_indexes = 5
 
 [auth]
 enabled = true
+# JWT secret de assinatura do stack local. Definido de propósito com valor
+# DISTINTO do fallback embutido do Supabase: é o que permite à perna unit
+# provar que o helper de JWT lê o config.toml (F0.4.1). Não remover nem
+# alterar sem rodar a mutação de aceite da F0.4.1 (regra anti-teatro).
+jwt_secret = "nominata-jwt-secret-local-de-desenvolvimento-distinto-do-fallback"
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
 site_url = "http://127.0.0.1:3000"
