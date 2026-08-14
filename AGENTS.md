@@ -42,6 +42,10 @@ Não são prosa — são condições de aceite.
 1. **RED** — escrever o teste que falha ANTES da implementação, incluindo obrigatoriamente o
    caso negativo cross-tenant. Rodar e colar a saída de falha.
    **Se passou de primeira, o teste está errado: reescrever.**
+   **O RED é commit próprio:** `RED: <tarefa>`, com os arquivos de teste e a saída vermelha no
+   corpo, ANTES do commit de implementação. Sem ele, `git log --follow` do arquivo de teste não
+   registra o momento intermediário e a disciplina central do loop não é verificável por
+   ninguém além de quem a executou. Custa um commit; é o que torna o RED auditável.
 2. **GREEN** — implementar o mínimo. Rodar só o teste alvo.
 3. **VERIFY** — `npm run verify`.
 4. **PROVE** — se tocou policy de RLS: `npm run verify:rls-mutacao`.
@@ -62,6 +66,23 @@ preenche. Nenhuma perna pode falhar; perna que tem conteúdo tem que rodá-lo.
 Uma operação só está pronta quando existe um teste que **falha se a filtragem por tenant for
 removida**. O agente demonstra isso na entrega: comenta a linha do filtro, roda, mostra o
 teste vermelho, restaura.
+
+**Generalização obrigatória (2026-08-14).** A regra acima vale para QUALQUER asserção nova, não
+só para filtragem por tenant: **asserção só conta depois de ter sido vista vermelha, mutando
+aquilo que ela cobre.** Na entrega, para cada asserção não trivial: mutar o comportamento
+coberto, rodar, colar o vermelho, restaurar, colar o verde.
+
+O motivo está escrito em dois incidentes reais deste projeto, e é o mesmo defeito nos dois:
+**asserção verdadeira por acidente, porque duas coisas que deveriam ser independentes tinham o
+mesmo valor.**
+
+* **F0.3** — a policy `tenant_lock` ficava verde presente ou ausente, porque o predicado dela
+  era idêntico ao da `ping_select`.
+* **F0.4** — o teste da origem do segredo de JWT ficava verde lendo o `config.toml` ou não,
+  porque o arquivo não define `jwt_secret` e o fallback tem o mesmo valor.
+
+Nos dois casos o código estava certo e o teste não provava nada. Ler o teste não pega isso;
+só mutar pega. **Duas ocorrências não são coincidência — por isso virou regra, e não nota.**
 
 ## Regra anti-enfraquecimento de teste
 
