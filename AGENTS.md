@@ -45,12 +45,17 @@ Não são prosa — são condições de aceite.
 2. **GREEN** — implementar o mínimo. Rodar só o teste alvo.
 3. **VERIFY** — `npm run verify`.
 4. **PROVE** — se tocou policy de RLS: `npm run verify:rls-mutacao`.
-5. **EVIDÊNCIA** — saída gravada em `.evidencia/verify-<timestamp>.txt`; últimas ~40 linhas
-   no corpo do commit.
+5. **EVIDÊNCIA** — saída gravada em `.evidencia/` com o nome da tarefa (ex.:
+   `f0-registrar-ping.txt`); últimas ~40 linhas no corpo do commit.
 6. **PRONTO** — só agora marcar `[x]`, citando o arquivo de evidência.
 
 **Critério de saída, literal:** `EXIT_CODE=0` e a saída colada. Diferente de 0 significa NÃO
 PRONTO, sem exceção e sem interpretação.
+
+**Perna sem conteúdo** (correção 2026-08-14, descoberta na F0.4): se uma perna do `verify`
+ainda não pode ter teste — ex.: `unit` antes do primeiro arquivo, `e2e` antes de existir
+app — ela só passa se a ausência estiver **DECLARADA na evidência**, com a tarefa que a
+preenche. Nenhuma perna pode falhar; perna que tem conteúdo tem que rodá-lo.
 
 ## Regra anti-teatro
 
