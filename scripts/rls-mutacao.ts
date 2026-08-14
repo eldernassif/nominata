@@ -12,6 +12,11 @@
 //   (c) vermelho por infraestrutura       → classificarVeredito
 // mais a restauração conferida a cada volta → conferirRestauracao.
 //
+// Achado do arquiteto na demonstração da F0.5, corrigido na F0.6: o catálogo
+// era lido ANTES do reset da linha de base — auditava o estado em que o
+// banco por acaso estava, não o que as migrations definem. A leitura agora
+// vem DEPOIS do reset: o catálogo vira a verdade das migrations.
+//
 // Usa pg (Node), não psql — não exige cliente Postgres instalado.
 import { execSync } from 'node:child_process';
 import { resolve } from 'node:path';
@@ -177,16 +182,10 @@ function lerFlagApenas(argv: string[]): string | undefined {
 async function main(): Promise<void> {
   const apenasTabela = lerFlagApenas(process.argv);
 
-  // (a) catálogo — impresso NOMEADO antes de qualquer validação
-  const catalogoCompleto = await lerCatalogo();
-  const alvos = apenasTabela === undefined
-    ? catalogoCompleto
-    : filtrarPorTabela(catalogoCompleto, apenasTabela);
-  console.log(`CATALOGO DE POLICIES (${alvos.length}):`);
-  console.log(listaNomeada(alvos));
-  validarCatalogo(alvos);
-
-  // (b) linha de base: suíte verde ANTES de qualquer drop
+  // (b) linha de base PRIMEIRO: db reset + suíte verde ANTES de qualquer
+  // drop. A leitura do catálogo vem depois de propósito (achado F0.5): com
+  // banco sujo, o script abortava no primeiro conferirRestauracao — auditar
+  // o estado canônico exige o reset antes da leitura.
   console.log('\nLINHA DE BASE: db reset + supabase test db...');
   const resetInicial = rodar('npx supabase db reset --yes --local');
   if (resetInicial.exitCode !== 0) {
@@ -195,6 +194,16 @@ async function main(): Promise<void> {
   const linhaDeBase = rodar('npx supabase test db');
   validarLinhaBase(linhaDeBase);
   console.log('LINHA DE BASE VERDE.');
+
+  // (a) catálogo — lido DEPOIS do reset (ver acima) e impresso NOMEADO
+  // antes de qualquer validação
+  const catalogoCompleto = await lerCatalogo();
+  const alvos = apenasTabela === undefined
+    ? catalogoCompleto
+    : filtrarPorTabela(catalogoCompleto, apenasTabela);
+  console.log(`CATALOGO DE POLICIES (${alvos.length}):`);
+  console.log(listaNomeada(alvos));
+  validarCatalogo(alvos);
 
   // loop: drop -> suíte -> veredito -> reset -> CONFERIR restauração
   const vereditos: Array<{ item: PolicyItem; veredito: Veredito; detalhe: string }> = [];

@@ -7,6 +7,14 @@
 -- elas são necessárias (roda deliberadamente como postgres e enxerga as duas contas).
 --
 -- Armadilha 1 (§9.5): leitura negativa é sempre is_empty, nunca throws_ok.
+--
+-- Ordem das asserções (achado do arquiteto na F0.6, severidade baixa): as
+-- is_empty de isolamento vêm ANTES das escalares em cada sessão, e o texto é
+-- agregado (string_agg) em vez de subconsulta de coluna única. Motivo: com a
+-- RLS desligada, o subselect de coluna única estoura "more than one row" e
+-- aborta a transação — a suíte ficava vermelha do mesmo jeito, mas a saída
+-- dizia "Bad plan. You planned 8 tests but ran 4" em vez de nomear "conta A
+-- enxergou o ping da conta B". Mesmas asserções, falha legível.
 begin;
 select plan(8);
 
@@ -33,14 +41,15 @@ select is(current_setting('role', true), 'authenticated',
 select isnt(nullif(current_setting('request.jwt.claims', true), ''), null,
   'guarda: claims de JWT presentes');
 
--- leitura: conta A enxerga apenas o próprio ping
-select is((select count(*)::int from app.ping), 1,
-  'conta A enxerga apenas o proprio ping');
-select is((select texto from app.ping), 'ping da conta A',
-  'conta A enxerga o proprio texto');
+-- leitura: conta A enxerga apenas o próprio ping. A negativa vem antes das
+-- positivas de propósito (ver nota da ordem no topo).
 select is_empty(
   $$ select * from app.ping where id = '00000000-0000-0000-0000-0000000000b2' $$,
   'conta A nao enxerga o ping da conta B');
+select is((select count(*)::int from app.ping), 1,
+  'conta A enxerga apenas o proprio ping');
+select is((select string_agg(texto, ',' order by id) from app.ping), 'ping da conta A',
+  'conta A enxerga o proprio texto');
 
 -- (escrita direta como authenticated NÃO é testada aqui de propósito: a Camada 3
 -- do plano proíbe grant de INSERT/UPDATE/DELETE para authenticated — o gate da
@@ -54,11 +63,11 @@ select is_empty(
 reset role;
 select tests.authenticate_as('authenticated',
   '{"sub":"00000000-0000-0000-0000-0000000000c2","app_metadata":{"conta_id":"00000000-0000-0000-0000-0000000000a2"}}');
-select is((select count(*)::int from app.ping), 1,
-  'conta B enxerga apenas o proprio ping');
 select is_empty(
   $$ select * from app.ping where id = '00000000-0000-0000-0000-0000000000b1' $$,
   'conta B nao enxerga o ping da conta A');
+select is((select count(*)::int from app.ping), 1,
+  'conta B enxerga apenas o proprio ping');
 
 select * from finish();
 rollback;
