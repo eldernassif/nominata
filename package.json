@@ -14,13 +14,15 @@
     "verify:db": "supabase db lint --level error --fail-on error && supabase test db",
     "verify:unit": "vitest run --project unit",
     "verify:contrato": "vitest run --project contrato",
-    "verify:e2e": "playwright test",
+    "verify:e2e": "tsx scripts/verify-e2e.ts",
     "verify:rls-mutacao": "tsx scripts/rls-mutacao.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
     "@types/node": "^26.2.0",
+    "@types/pg": "^8.21.0",
     "eslint": "^10.8.1",
+    "pg": "^8.23.0",
     "prettier": "^3.9.6",
     "supabase": "2.114.0",
     "tsx": "^4.23.12",
