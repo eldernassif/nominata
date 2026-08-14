@@ -18,6 +18,8 @@ supabase/.branches/
 *.dump
 !supabase/migrations/*.sql
 !supabase/seed.sql
+# Testes pgTAP são código de teste, não dump — versionados como as migrations
+!supabase/tests/*.sql
 
 # Evidência de execução (gerada, não versionada)
 .evidencia/
