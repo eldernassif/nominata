@@ -64,6 +64,16 @@ describe('helper de JWT do contrato', () => {
     expect(assinatura).toBe(esperada);
   });
 
+  test('o config.toml real define jwt_secret distinto do fallback', () => {
+    // Pré-condição anti-verde-por-acidente (achado da revisão da F0.4):
+    // se o arquivo não definir a chave, o valor lido e o fallback embutido
+    // são o MESMO, e o teste de assinatura acima não prova a origem do
+    // segredo — a suíte continuaria verde com o helper ignorando o toml.
+    expect(jwtSecretDoToml(TOML_REAL)).not.toBe(
+      'super-secret-jwt-token-with-at-least-32-characters-long',
+    );
+  });
+
   test('jwtAutenticado com conta carrega app_metadata.conta_id no claim', () => {
     const payload = decodificarPayload(
       jwtAutenticado(
