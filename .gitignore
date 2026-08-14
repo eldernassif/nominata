@@ -1,0 +1,31 @@
+# Configuração local — pode conter credencial. NUNCA versionar.
+.env
+.env.*
+.claude/settings.local.json
+.claude/settings.local.*
+
+# Dependências e build
+node_modules/
+dist/
+.vite/
+
+# Supabase
+supabase/.temp/
+supabase/.branches/
+
+# Dump de banco — jamais entra em git
+*.sql
+*.dump
+!supabase/migrations/*.sql
+!supabase/seed.sql
+
+# Evidência de execução (gerada, não versionada)
+.evidencia/
+
+# Testes
+playwright-report/
+test-results/
+
+# SO
+Thumbs.db
+.DS_Store
