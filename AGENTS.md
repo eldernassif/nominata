@@ -46,6 +46,13 @@ Não são prosa — são condições de aceite.
    corpo, ANTES do commit de implementação. Sem ele, `git log --follow` do arquivo de teste não
    registra o momento intermediário e a disciplina central do loop não é verificável por
    ninguém além de quem a executou. Custa um commit; é o que torna o RED auditável.
+   **Exceção — tarefa cujo entregável é SÓ teste** (ampliação de gate, correção de asserção,
+   caso novo numa matriz): não há metade de implementação, então não há dois commits. Ela produz
+   **um commit só**, e a prova do vermelho vive na evidência, no par vermelho/verde por mutação —
+   que é o que a regra anti-teatro já exige. **Nunca criar commit vazio para satisfazer a forma:**
+   um `RED:` que contém o trabalho pronto mais um commit vazio rotulado de implementação faz o
+   `git log` afirmar o oposto da verdade, que é justamente o que esta regra existe para impedir.
+   Precisão do arquiteto em 2026-08-15, depois da F0.6.1 (que era só teste) produzir esse par.
 2. **GREEN** — implementar o mínimo. Rodar só o teste alvo.
 3. **VERIFY** — `npm run verify`.
 4. **PROVE** — se tocou policy de RLS: `npm run verify:rls-mutacao`.
