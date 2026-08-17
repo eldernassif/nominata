@@ -1,0 +1,5 @@
+# F0.7 — decisão de EOL declarada na evidência: o CLI do Supabase emite LF e
+# o checkout do Windows entrega CRLF, gerando diff eterno no arquivo de tipos
+# gerado. Fixado em LF; as comparações de conteúdo normalizam EOL mesmo assim
+# (defesa em profundidade — o hash do manifesto é do conteúdo normalizado).
+src/types/database.ts text eol=lf

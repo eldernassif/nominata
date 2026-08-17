@@ -2,9 +2,10 @@
 // invalida/erro+nada gravado, não autorizado, não autenticado, evento com
 // exatamente 1 linha).
 //
-// op:registrar_ping:idempotencia — NÃO SE APLICA: operação de criação; cada
-// chamada cria uma linha e um evento por design. Ausência documentada no
-// contrato F0.4, sem teste.
+// op:registrar_ping:idempotencia — contrato da repetição (F0.7): cada chamada
+// cria uma linha e um evento por design; a repetição é aceita e produz uma
+// SEGUNDA linha e um SEGUNDO evento, com ids distintos. Era "NÃO SE APLICA"
+// no contrato F0.4; a F0.7 definiu o comportamento e o caso entrou na matriz.
 //
 // A leitura negativa cross-tenant roda direto no banco com SET LOCAL ROLE +
 // claims (mesma técnica do pgTAP) e guarda do papel corrente — armadilha 2
@@ -95,7 +96,7 @@ describe('op:registrar_ping', () => {
     expect(await contarEventos(conta.id)).toBe(0);
   });
 
-  test('op:registrar_ping:sem_sessao — requisição sem token rejeitada sem gravar', async () => {
+  test('op:registrar_ping:nao_autenticado — requisição sem token rejeitada sem gravar', async () => {
     const conta = await criarConta(`conta-${novoSufixo()}`);
 
     const res = await rpc({ texto: 'anônimo' });
@@ -127,6 +128,25 @@ describe('op:registrar_ping', () => {
     const ocorrido = evento?.ocorrido_em?.getTime() ?? 0;
     expect(ocorrido).toBeGreaterThanOrEqual(antes - 1000);
     expect(Math.abs(Date.now() - ocorrido)).toBeLessThan(5 * 60 * 1000);
+  });
+
+  test('op:registrar_ping:idempotencia — repetição cria segunda linha e segundo evento, ids distintos', async () => {
+    const conta = await criarConta(`conta-${novoSufixo()}`);
+    const sub = novoSub();
+    await criarUsuario(sub, conta.id);
+    const jwt = jwtAutenticado(sub, conta.id);
+
+    const primeira = await rpc({ texto: 'repetido' }, jwt);
+    expect(primeira.status).toBe(200);
+    const corpo1 = (await primeira.json()) as CorpoRpc;
+
+    const segunda = await rpc({ texto: 'repetido' }, jwt);
+    expect(segunda.status).toBe(200);
+    const corpo2 = (await segunda.json()) as CorpoRpc;
+
+    expect(corpo2.id).not.toBe(corpo1.id);
+    expect(await contarPings(conta.id)).toBe(2);
+    expect(await contarEventos(conta.id)).toBe(2);
   });
 
   test('op:registrar_ping:leitura_cross_tenant — conta B nao enxerga linha da conta A', async () => {

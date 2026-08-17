@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
+  api: {
     Tables: {
       [_ in never]: never
     }
@@ -15,15 +15,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
+      registrar_ping: { Args: { texto: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
@@ -40,7 +32,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      custom_access_token_hook: { Args: { event: Json }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
@@ -169,10 +161,11 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
+  api: {
     Enums: {},
   },
   public: {
     Enums: {},
   },
 } as const
+
