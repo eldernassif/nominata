@@ -11,6 +11,7 @@ import { describe, expect, test } from 'vitest';
 import {
   analisarDiffDeTestes,
   contarSupressoes,
+  contarSupressoesNormalizadas,
   detectarMarcadores,
   detectarPgTAPMorto,
   extrairLimiares,
@@ -198,5 +199,43 @@ describe('regra 6: supressões que aumentaram', () => {
     expect(supressoesAumentaram(2, 3)).toBe(true);
     expect(supressoesAumentaram(3, 2)).toBe(false);
     expect(supressoesAumentaram(2, 2)).toBe(false);
+  });
+});
+
+describe('regra 6: supressões normalizadas — os dois lados medem igual (F0.7.1)', () => {
+  test('menção falsa dentro de string literal não conta como supressão', () => {
+    const conteudo = [
+      '// @ts-expect-error legítimo',
+      "const a = '@ts-expect-error';",
+      'const b = "eslint-disable";',
+      'const c = `@ts-expect-error`;',
+      "const d = 'eslint-disable-next-line';",
+    ].join('\n');
+    expect(contarSupressoesNormalizadas(conteudo)).toBe(1);
+  });
+
+  test('conteúdo só com menções falsas em string conta zero', () => {
+    // as quatro menções falsas a supressões de compilador/linter que vivem
+    // dentro de aspas no teste unit do próprio gate — o "antes" bruto contava
+    // 4 e o "depois" normalizado 0, a folga que a F0.7.1 fecha
+    const conteudo = [
+      "const a = '@ts-expect-error';",
+      "const b = 'eslint-disable';",
+      "const c = '@ts-expect-error';",
+      "const d = 'eslint-disable-next-line';",
+    ].join('\n');
+    expect(contarSupressoesNormalizadas(conteudo)).toBe(0);
+  });
+
+  test('supressão real fora de string conta normalmente', () => {
+    expect(
+      contarSupressoesNormalizadas('const x = 1; // @ts-expect-error intencional'),
+    ).toBe(1);
+  });
+
+  test('supressão de linter em comentário é preservada — comentário não é string', () => {
+    expect(
+      contarSupressoesNormalizadas('// eslint-disable-next-line no-explicit-any\nconst a: any = 1;'),
+    ).toBe(1);
   });
 });
