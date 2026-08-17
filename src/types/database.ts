@@ -12,7 +12,27 @@ export type Database = {
       [_ in never]: never
     }
     Views: {
-      [_ in never]: never
+      v_ping: {
+        Row: {
+          conta_id: string | null
+          criado_em: string | null
+          id: string | null
+          texto: string | null
+        }
+        Insert: {
+          conta_id?: string | null
+          criado_em?: string | null
+          id?: string | null
+          texto?: string | null
+        }
+        Update: {
+          conta_id?: string | null
+          criado_em?: string | null
+          id?: string | null
+          texto?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       registrar_ping: { Args: { texto: string }; Returns: Json }
