@@ -91,6 +91,30 @@ mesmo valor.**
 Nos dois casos o código estava certo e o teste não provava nada. Ler o teste não pega isso;
 só mutar pega. **Duas ocorrências não são coincidência — por isso virou regra, e não nota.**
 
+**Segunda generalização (2026-08-17, descoberta na revisão da F0.7).** O par vermelho/verde tem
+que ser **reproduzível contra o commit final entregue**. Vermelho medido no meio do caminho —
+contra uma base que a própria entrega mudou depois, ou durante um incidente de ambiente — foi
+verdadeiro quando medido e é falso quando lido. Antes de marcar `[x]`: re-rodar cada mutação
+contra o HEAD que vai ser entregue e conferir que os números da evidência são os que o comando
+dá agora.
+
+* **F0.7** — a evidência afirmava "contagem de supressões 0 → 1, vermelho". Contra o HEAD
+  entregue, o gate lê a base como 4 e só fica vermelho em 4 → 5: folga silenciosa de quatro
+  supressões. A medição tinha sido feita antes de o commit de implementação existir.
+* **F0.7** — o par do `bootstrap.ps1` foi validado durante a mitigação do OOM, com os containers
+  parados: o `.env.local` conferido tinha uma variável em vez do ambiente inteiro.
+
+**Gate que compara dois lados normaliza os dois lados do mesmo jeito.** Contar o "antes" com o
+texto bruto e o "depois" com o texto tratado é a mesma classe da F0.3 e da F0.4: verde porque os
+dois lados não são comparáveis. Apareceu **duas vezes dentro da própria F0.7** — a regex que não
+casava `NÃO SE APLICA` por causa do `Ã`, e a contagem de supressões. Duas vezes na mesma tarefa
+é padrão, não incidente.
+
+**Gate estruturalmente dormente grita.** Se uma regra não tem o que guardar hoje — ex.: limiar de
+cobertura num projeto sem limiar configurado —, o script imprime que ela está dormente em toda
+execução, do mesmo jeito que imprime a base de comparação. Regra dormente em silêncio é
+indistinguível de regra que passou.
+
 ## Regra anti-enfraquecimento de teste
 
 Depois que um teste ficou vermelho no passo RED, o **arquivo de teste está CONGELADO**. Se a
