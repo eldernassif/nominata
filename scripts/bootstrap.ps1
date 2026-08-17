@@ -26,12 +26,12 @@ if ($bancoDePe -match 'supabase_db_nominata') {
 
 # Sem pipe e sem Set-Content/Out-File, de proposito: o Out-File quebra linhas
 # na largura do console (o status tem linhas de ~1500 caracteres), e o
-# Set-Content -Encoding utf8 do PS 5.1 grava COM BOM — o CLI do Supabase le
+# Set-Content -Encoding utf8 do PS 5.1 grava COM BOM - o CLI do Supabase le
 # este arquivo como environment file e recusa o BOM ("unexpected character
 # in variable name" no db diff). UTF-8 SEM BOM e o unico formato aceito.
 $caminhoEnv = Join-Path (Split-Path -Parent $PSScriptRoot) '.env.local'
 # o arquivo e artefato DESTE script (a unica fonte e o status -o env); um
-# legado corrompido — ex.: o BOM de um Set-Content antigo — quebraria o CLI
+# legado corrompido - ex.: o BOM de um Set-Content antigo - quebraria o CLI
 # no boot, antes do status rodar. Remove e regenera do zero.
 if (Test-Path $caminhoEnv) {
   Remove-Item -Path $caminhoEnv -Force

@@ -168,6 +168,13 @@ export function supressoesAumentaram(antes: number, depois: number): boolean {
   return depois > antes;
 }
 
+export function contarSupressoesNormalizadas(conteudo: string): number {
+  // normalizar ANTES de contar: menção falsa dentro de string literal não é
+  // supressão. Base e estado atual têm que passar pelo MESMO tratamento —
+  // contar o "antes" bruto e o "depois" sem strings é a folga da F0.7.1
+  return contarSupressoes(removerStringsLiterais(conteudo));
+}
+
 // -------- I/O --------
 
 const RAIZ = fileURLToPath(new URL('../', import.meta.url));
@@ -177,7 +184,7 @@ const RAIZ = fileURLToPath(new URL('../', import.meta.url));
 // sempre. Comentário NÃO é removido — a supressão de linter É comentário, e a
 // regra 2 existe para ver comentário. Limitação declarada: regex literal
 // contendo aspas pode ser confundido com string; os fontes daqui não têm.
-function removerStringsLiterais(conteudo: string): string {
+export function removerStringsLiterais(conteudo: string): string {
   let resultado = '';
   let i = 0;
   while (i < conteudo.length) {
@@ -311,6 +318,12 @@ function main(): void {
     : '';
   const limiarAntes = extrairLimiares(conteudoNaBase('vitest.config.ts', base));
   const limiarDepois = extrairLimiares(configAtual);
+  if (Object.keys(limiarAntes).length === 0) {
+    console.log(
+      'regra 5 (limiar de cobertura) DORMENTE: sem `thresholds` na base (vitest.config.ts) — ' +
+        'base vazia, qualquer valor seria limiar novo, não redução; nada a guardar até a fase configurar cobertura',
+    );
+  }
   if (limiarReduzido(limiarAntes, limiarDepois)) {
     violacoes.push({
       regra: 'limiar de cobertura reduzido',
@@ -328,8 +341,8 @@ function main(): void {
     // backslashes e o replace não casa — todo git show falhava e o "antes"
     // ficava zero para tudo
     const relativo = relative(RAIZ, arquivo).replaceAll('\\', '/');
-    suprimeAntes += contarSupressoes(conteudoNaBase(relativo, base));
-    suprimeDepois += contarSupressoes(removerStringsLiterais(readFileSync(arquivo, 'utf8')));
+    suprimeAntes += contarSupressoesNormalizadas(conteudoNaBase(relativo, base));
+    suprimeDepois += contarSupressoesNormalizadas(readFileSync(arquivo, 'utf8'));
   }
   if (supressoesAumentaram(suprimeAntes, suprimeDepois)) {
     violacoes.push({
