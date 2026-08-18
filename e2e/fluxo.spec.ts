@@ -9,14 +9,16 @@ import { expect, test } from '@playwright/test';
 
 const EMAIL_E2E = 'e2e@nominata.dev';
 const MAILPIT_API = 'http://127.0.0.1:54324/api/v1';
-const LINHA_VERIFY = /auth\/v1\/verify/;
 
 interface MensagemMailpit {
   ID: string;
   To: Array<{ Address: string }>;
 }
 
-async function buscarEmail(emails: Array<{ Address: string }> | undefined): Promise<boolean> {
+// síncrono de propósito: vai em predicado de Array.find — assíncrono retornaria
+// Promise (sempre truthy) e o find pegaria a primeira mensagem do Mailpit,
+// mesmo que fosse de outra execução.
+function buscarEmail(emails: Array<{ Address: string }> | undefined): boolean {
   return (emails ?? []).some((dest) => dest.Address === EMAIL_E2E);
 }
 

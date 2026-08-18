@@ -63,7 +63,7 @@ async function previewPronto(): Promise<boolean> {
   return false;
 }
 
-async function limparPreview(): Promise<void> {
+function limparPreview(): void {
   if (morto) return;
   try {
     // /T derruba a árvore inteira (cmd → npm → node → wrangler → workerd);
@@ -99,7 +99,7 @@ function segredosNoDist(valores: string[]): string[] {
 
 async function principal(): Promise<void> {
   if (!(await previewPronto())) {
-    await limparPreview();
+    limparPreview();
     falhar('preview', `preview não subiu em ${ESPERA_PREVIEW_MS}ms (build ou wrangler)`);
   }
 
@@ -110,7 +110,7 @@ async function principal(): Promise<void> {
     if (!curl.includes('strict-transport-security')) falhar('curl', 'resposta sem Strict-Transport-Security');
     if (!curl.includes('connect-src')) falhar('curl', 'CSP sem connect-src');
   } catch (erro) {
-    await limparPreview();
+    limparPreview();
     falhar('curl', erro instanceof Error ? erro.message : String(erro));
   }
 
@@ -121,7 +121,7 @@ async function principal(): Promise<void> {
     .filter((v): v is string => Boolean(v));
   const achados = segredosNoDist(valores);
   if (achados.length > 0) {
-    await limparPreview();
+    limparPreview();
     falhar('segredo', achados.join('; '));
   }
 
@@ -131,11 +131,11 @@ async function principal(): Promise<void> {
     play.on('exit', (c) => resolver(c ?? 1));
   });
 
-  await limparPreview();
+  limparPreview();
   if (codigo !== 0) process.exit(codigo);
 }
 
-principal().catch(async (erro) => {
-  await limparPreview();
+principal().catch((erro) => {
+  limparPreview();
   falhar('execucao', erro instanceof Error ? erro.message : String(erro));
 });

@@ -5,6 +5,7 @@ export default tseslint.config(
     ignores: [
       'node_modules/**',
       'dist/**',
+      '.wrangler/**',
       'supabase/**',
       'playwright-report/**',
       'test-results/**',
