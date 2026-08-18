@@ -4,17 +4,17 @@ import {
   createRouter,
 } from '@tanstack/react-router';
 
-import TelaLogin from '@/features/auth/components/TelaLogin';
+import PaginaRaiz from './PaginaRaiz';
 
 const rootRoute = createRootRoute();
 
-const loginRoute = createRoute({
+const raizRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: TelaLogin,
+  component: PaginaRaiz,
 });
 
-const routeTree = rootRoute.addChildren([loginRoute]);
+const routeTree = rootRoute.addChildren([raizRoute]);
 
 export const router = createRouter({ routeTree });
 
