@@ -1,0 +1,31 @@
+/* Base do tema: aplica os tokens semânticos ao corpo e aos controles nativos.
+   Em @layer base para os utilitários do Tailwind ganharem do default. */
+@layer base {
+  body {
+    background-color: var(--cor-fundo);
+    color: var(--cor-texto);
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+
+  input,
+  button {
+    background-color: var(--cor-superficie);
+    color: var(--cor-texto);
+    border: 1px solid var(--cor-borda);
+  }
+
+  button[type='submit'] {
+    background-color: var(--cor-primaria);
+    border-color: var(--cor-primaria);
+    color: var(--cor-primaria-contraste);
+  }
+
+  button:disabled {
+    opacity: 0.55;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--cor-primaria);
+    outline-offset: 2px;
+  }
+}

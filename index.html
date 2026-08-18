@@ -4,6 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nominata</title>
+    <script>
+      // Carimba data-theme antes da primeira pintura (sem flash do tema errado).
+      (function () {
+        var chave = 'nominata:tema';
+        var preferido = window.localStorage.getItem(chave);
+        var tema;
+        if (preferido === 'claro' || preferido === 'escuro') {
+          tema = preferido;
+        } else {
+          tema = window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'escuro'
+            : 'claro';
+        }
+        document.documentElement.dataset.theme = tema;
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

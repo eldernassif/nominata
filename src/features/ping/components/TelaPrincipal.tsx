@@ -1,3 +1,5 @@
+import AlternadorTema from '@/features/tema/components/AlternadorTema';
+
 import { useListarPings } from '../api/useListarPings';
 import { useRegistrarPing } from '../api/useRegistrarPing';
 import { copy } from '../copy';
@@ -10,6 +12,9 @@ export default function TelaPrincipal() {
 
   return (
     <main>
+      <header>
+        <AlternadorTema />
+      </header>
       <h1>{copy.titulo}</h1>
 
       <FormularioPing

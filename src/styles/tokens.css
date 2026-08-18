@@ -1,0 +1,59 @@
+/* Tokens do tema em três camadas: primitivos → semânticos → @theme inline.
+   O script inline do index.html carimba data-theme antes da primeira pintura;
+   o hook useTema cuida do toggle e da persistência (localStorage nominata:tema). */
+
+/* 1. Primitivos — valores brutos, independentes do tema. */
+:root {
+  --primitivo-branco: oklch(1 0 0);
+  --primitivo-neutro-100: oklch(0.965 0.003 260);
+  --primitivo-neutro-200: oklch(0.925 0.005 260);
+  --primitivo-neutro-700: oklch(0.475 0.012 260);
+  --primitivo-neutro-800: oklch(0.365 0.012 260);
+  --primitivo-neutro-900: oklch(0.24 0.012 260);
+  --primitivo-neutro-950: oklch(0.145 0.012 260);
+  --primitivo-azul-600: oklch(0.5 0.13 255);
+  --primitivo-azul-700: oklch(0.43 0.12 255);
+  --primitivo-vermelho-700: oklch(0.5 0.17 25);
+  --primitivo-vermelho-400: oklch(0.68 0.16 25);
+}
+
+/* 2. Semânticos — papel no produto, por tema. Claro é o padrão (fallback). */
+:root,
+:root[data-theme='light'] {
+  --cor-fundo: var(--primitivo-branco);
+  --cor-superficie: var(--primitivo-neutro-100);
+  --cor-texto: var(--primitivo-neutro-900);
+  --cor-texto-suave: var(--primitivo-neutro-700);
+  --cor-borda: var(--primitivo-neutro-200);
+  --cor-primaria: var(--primitivo-azul-600);
+  --cor-primaria-pressionada: var(--primitivo-azul-700);
+  --cor-primaria-contraste: var(--primitivo-branco);
+  --cor-erro: var(--primitivo-vermelho-700);
+}
+
+:root[data-theme='dark'] {
+  --cor-fundo: var(--primitivo-neutro-950);
+  --cor-superficie: var(--primitivo-neutro-900);
+  --cor-texto: var(--primitivo-neutro-100);
+  --cor-texto-suave: var(--primitivo-neutro-700);
+  --cor-borda: var(--primitivo-neutro-800);
+  --cor-primaria: var(--primitivo-azul-600);
+  --cor-primaria-pressionada: var(--primitivo-azul-700);
+  --cor-primaria-contraste: var(--primitivo-branco);
+  --cor-erro: var(--primitivo-vermelho-400);
+}
+
+/* 3. @theme inline — expõe os semânticos como utilidades do Tailwind v4.
+   O `inline` faz a utilidade apontar direto para var(--cor-*), que muda por
+   tema em runtime. */
+@theme inline {
+  --color-fundo: var(--cor-fundo);
+  --color-superficie: var(--cor-superficie);
+  --color-texto: var(--cor-texto);
+  --color-texto-suave: var(--cor-texto-suave);
+  --color-borda: var(--cor-borda);
+  --color-primaria: var(--cor-primaria);
+  --color-primaria-pressionada: var(--cor-primaria-pressionada);
+  --color-primaria-contraste: var(--cor-primaria-contraste);
+  --color-erro: var(--cor-erro);
+}

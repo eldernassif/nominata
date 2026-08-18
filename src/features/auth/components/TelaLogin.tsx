@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 
+import AlternadorTema from '@/features/tema/components/AlternadorTema';
+
 import { entrarComGoogle } from '../api/entrarComGoogle';
 import { enviarLinkMagico } from '../api/enviarLinkMagico';
 import { copy } from '../copy';
@@ -48,6 +50,9 @@ export default function TelaLogin() {
 
   return (
     <main>
+      <header>
+        <AlternadorTema />
+      </header>
       <h1>{copy.titulo}</h1>
       <p>{copy.subtitulo}</p>
 
