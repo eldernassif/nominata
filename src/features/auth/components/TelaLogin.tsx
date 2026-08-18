@@ -3,7 +3,6 @@ import type { FormEvent } from 'react';
 
 import AlternadorTema from '@/features/tema/components/AlternadorTema';
 
-import { entrarComGoogle } from '../api/entrarComGoogle';
 import { enviarLinkMagico } from '../api/enviarLinkMagico';
 import { copy } from '../copy';
 import { emailSchema } from '../schemas/email';
@@ -32,15 +31,6 @@ export default function TelaLogin() {
       setErro(copy.erroGenerico);
     } finally {
       setEnviando(false);
-    }
-  }
-
-  async function handleGoogle() {
-    setErro(null);
-    try {
-      await entrarComGoogle();
-    } catch {
-      setErro(copy.erroGenerico);
     }
   }
 
@@ -75,15 +65,6 @@ export default function TelaLogin() {
           {enviando ? copy.enviando : copy.botaoEntrar}
         </button>
       </form>
-
-      <button
-        type="button"
-        onClick={() => {
-          void handleGoogle();
-        }}
-      >
-        {copy.botaoGoogle}
-      </button>
 
       {erro && <p role="alert">{erro}</p>}
     </main>
