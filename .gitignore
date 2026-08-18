@@ -8,6 +8,10 @@
 node_modules/
 dist/
 .vite/
+.wrangler/
+
+# Capturas de evidência (geradas, anexadas ao PR — não versionadas)
+capturas/
 
 # Supabase
 supabase/.temp/
