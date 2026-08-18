@@ -11,6 +11,7 @@ export default tseslint.config(
       'test-results/**',
       '.evidencia/**',
       '.claude/**',
+      'capturas/**',
       'src/types/database.ts',
     ],
   },
