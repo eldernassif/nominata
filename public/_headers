@@ -1,0 +1,12 @@
+/*
+  # F0.8.5 — Camada 1 do CSP (plano §6) + HSTS. O wrangler pages dev aplica
+  # este arquivo no preview local e o Cloudflare Pages o aplica em produção.
+  # connect-src fala com o Supabase local (127.0.0.1:54321 / ws) — a F0.10
+  # troca pelo host real. Sem script inline: o anti-FOUC vive em
+  # /tema-inicial.js (script-src 'self' bloqueia inline).
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' http://127.0.0.1:54321 ws://127.0.0.1:54321; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'

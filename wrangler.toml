@@ -1,0 +1,6 @@
+# F0.8.5 — config do deploy estático no Cloudflare Pages. O preview local usa
+# o MESMO arquivo (wrangler pages dev aplica _headers/_redirects de verdade),
+# por isso o e2e e o curl -sI do verify provam a config que vai a produção.
+name = "nominata"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-08-17"

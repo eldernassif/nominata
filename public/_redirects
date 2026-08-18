@@ -1,0 +1,5 @@
+# F0.8.5 — rewrite do SPA: qualquer rota interna serve o index.html (status
+# 200) em vez de 404 no Cloudflare Pages. No preview (wrangler pages dev) o
+# fallback é automático — quem prova que ESTE arquivo está vivo é o gate
+# estrutural do verify-e2e.ts (mutação desta linha deixa o gate vermelho).
+/* /index.html 200
