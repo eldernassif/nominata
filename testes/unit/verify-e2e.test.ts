@@ -7,7 +7,7 @@
 //     confirma que a resposta vem do processo recém-subido, e o encerramento
 //     robusto depende de identificar corretamente os PIDs presos na porta.
 import { describe, expect, test } from 'vitest';
-import { linhaDeMarca, marcaBate, pidsNaPorta, semArquivo404 } from '../../scripts/verify-e2e';
+import { linhaDeMarca, marcaBate, pidsNaPorta, pidsNaPortaPosix, semArquivo404 } from '../../scripts/verify-e2e';
 
 describe('item (2): gate comportamental do rewrite de SPA', () => {
   test('build sem 404.html está correto — Cloudflare Pages cai no fallback automático', () => {
@@ -54,5 +54,23 @@ describe('item (4): identificação de PIDs presos na porta do preview', () => {
 
   test('porta livre não devolve PID nenhum', () => {
     expect(pidsNaPorta(SAIDA_NETSTAT, 9999)).toEqual([]);
+  });
+});
+
+describe('F0.9: identificação de PIDs presos na porta do preview em Linux/macOS (lsof -ti)', () => {
+  test('extrai um PID por linha da saída do lsof', () => {
+    expect(pidsNaPortaPosix('21344\n')).toEqual(['21344']);
+  });
+
+  test('extrai múltiplos PIDs, uma linha cada', () => {
+    expect(pidsNaPortaPosix('21344\n21399\n')).toEqual(['21344', '21399']);
+  });
+
+  test('saída vazia (porta livre) não devolve PID nenhum', () => {
+    expect(pidsNaPortaPosix('')).toEqual([]);
+  });
+
+  test('ignora linha em branco residual sem virar PID inválido', () => {
+    expect(pidsNaPortaPosix('21344\n\n')).toEqual(['21344']);
   });
 });
