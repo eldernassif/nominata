@@ -80,6 +80,22 @@ export function pidsNaPortaPosix(saidaLsof: string): string[] {
     .filter((linha) => linha !== '');
 }
 
+const CHAVES_SEGREDO = ['SERVICE_ROLE_KEY', 'SECRET_KEY', 'PUBLISHABLE_KEY'] as const;
+
+// F0.9 item (2): antes só filtrava as chaves ausentes de `supabase status -o
+// env` e comparava o dist contra o que sobrou — com as três ausentes, o gate
+// aprovava contra uma lista vazia. Agora nomeia a ausência em vez de escondê-la.
+export function extrairValoresDeSegredo(env: string): { valores: string[]; faltando: string[] } {
+  const valores: string[] = [];
+  const faltando: string[] = [];
+  for (const chave of CHAVES_SEGREDO) {
+    const valor = env.match(new RegExp(`^${chave}="([^"]+)"`, 'm'))?.[1];
+    if (valor) valores.push(valor);
+    else faltando.push(chave);
+  }
+  return { valores, faltando };
+}
+
 // -------- I/O --------
 
 function falhar(perna: string, detalhe: string): never {
@@ -265,9 +281,14 @@ function rodarPrincipal(): void {
 
     // --- nenhum segredo real no dist (fresco, pós-build) ---
     const env = execSync('npx supabase status -o env', { encoding: 'utf8' });
-    const valores = ['SERVICE_ROLE_KEY', 'SECRET_KEY', 'PUBLISHABLE_KEY']
-      .map((chave) => env.match(new RegExp(`^${chave}="([^"]+)"`, 'm'))?.[1])
-      .filter((v): v is string => Boolean(v));
+    const { valores, faltando } = extrairValoresDeSegredo(env);
+    if (faltando.length > 0) {
+      limparPreview();
+      falhar(
+        'segredo-extracao',
+        `não foi possível extrair de "supabase status -o env": ${faltando.join(', ')} — base parcial/vazia nunca aprova`,
+      );
+    }
     const achados = segredosNoDist(valores);
     if (achados.length > 0) {
       limparPreview();
