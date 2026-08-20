@@ -69,6 +69,17 @@ export function pidsNaPorta(saidaNetstat: string, porta: number): string[] {
   return [...pids];
 }
 
+// F0.9: contraparte do pidsNaPorta acima para o runner do CI (ubuntu-latest,
+// que roda os containers Linux do supabase — windows-latest hospedado não
+// roda). `lsof -ti tcp:<porta>` já devolve um PID por linha, sem o parsing
+// posicional do netstat.
+export function pidsNaPortaPosix(saidaLsof: string): string[] {
+  return saidaLsof
+    .split(/\r?\n/)
+    .map((linha) => linha.trim())
+    .filter((linha) => linha !== '');
+}
+
 // -------- I/O --------
 
 function falhar(perna: string, detalhe: string): never {
@@ -94,17 +105,34 @@ function checarAusenciaDe404PosBuild(): void {
 }
 
 function matarProcessosNaPorta(porta: number): void {
+  if (process.platform === 'win32') {
+    let saida = '';
+    try {
+      saida = execSync(`netstat -ano | findstr :${porta}`, { encoding: 'utf8' });
+    } catch {
+      return; // nenhum processo escutando a porta
+    }
+    for (const pid of pidsNaPorta(saida, porta)) {
+      try {
+        execSync(`taskkill /PID ${pid} /F`, { stdio: 'ignore' });
+      } catch {
+        // já morreu entre o netstat e o taskkill
+      }
+    }
+    return;
+  }
+
   let saida = '';
   try {
-    saida = execSync(`netstat -ano | findstr :${porta}`, { encoding: 'utf8' });
+    saida = execSync(`lsof -ti tcp:${porta}`, { encoding: 'utf8' });
   } catch {
     return; // nenhum processo escutando a porta
   }
-  for (const pid of pidsNaPorta(saida, porta)) {
+  for (const pid of pidsNaPortaPosix(saida)) {
     try {
-      execSync(`taskkill /PID ${pid} /F`, { stdio: 'ignore' });
+      process.kill(Number(pid), 'SIGKILL');
     } catch {
-      // já morreu entre o netstat e o taskkill
+      // já morreu entre o lsof e o kill
     }
   }
 }
@@ -163,7 +191,7 @@ function rodarPrincipal(): void {
   }
 
   function limparPreview(): void {
-    if (!morto) {
+    if (!morto && process.platform === 'win32') {
       try {
         // /T derruba a árvore inteira (cmd → npm → node → wrangler → workerd);
         // matar só o listener deixava workerd órfão (medido na F0.8.5).
@@ -172,7 +200,11 @@ function rodarPrincipal(): void {
         // já morreu
       }
     }
-    // fallback: /T nem sempre alcança o workerd respawnado (medido na F0.8.6)
+    // fallback (e único caminho fora do win32): mata pelo dono real da PORTA
+    // — pega a árvore toda porque o processo que efetivamente escuta 4173 é
+    // o workerd, não o shell do spawn. /T nem sempre alcança o workerd
+    // respawnado (medido na F0.8.6) e no POSIX matarProcessosNaPorta já cobre
+    // sozinho o caso normal (sem processo intermediário a matar antes).
     matarProcessosNaPorta(PORTA_PREVIEW);
   }
 
