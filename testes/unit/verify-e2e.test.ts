@@ -7,7 +7,14 @@
 //     confirma que a resposta vem do processo recém-subido, e o encerramento
 //     robusto depende de identificar corretamente os PIDs presos na porta.
 import { describe, expect, test } from 'vitest';
-import { linhaDeMarca, marcaBate, pidsNaPorta, pidsNaPortaPosix, semArquivo404 } from '../../scripts/verify-e2e';
+import {
+  extrairValoresDeSegredo,
+  linhaDeMarca,
+  marcaBate,
+  pidsNaPorta,
+  pidsNaPortaPosix,
+  semArquivo404,
+} from '../../scripts/verify-e2e';
 
 describe('item (2): gate comportamental do rewrite de SPA', () => {
   test('build sem 404.html está correto — Cloudflare Pages cai no fallback automático', () => {
@@ -72,5 +79,35 @@ describe('F0.9: identificação de PIDs presos na porta do preview em Linux/macO
 
   test('ignora linha em branco residual sem virar PID inválido', () => {
     expect(pidsNaPortaPosix('21344\n\n')).toEqual(['21344']);
+  });
+});
+
+describe('F0.9 item (2): extração dos valores de segredo — base parcial/vazia não pode aprovar', () => {
+  const ENV_COMPLETO = [
+    'SERVICE_ROLE_KEY="sb_secret_abc123"',
+    'SECRET_KEY="sb_secret_def456"',
+    'PUBLISHABLE_KEY="sb_publishable_ghi789"',
+  ].join('\n');
+
+  test('base completa: as três chaves saem em valores, faltando vazio', () => {
+    expect(extrairValoresDeSegredo(ENV_COMPLETO)).toEqual({
+      valores: ['sb_secret_abc123', 'sb_secret_def456', 'sb_publishable_ghi789'],
+      faltando: [],
+    });
+  });
+
+  test('base parcial: falta uma chave, ela aparece em faltando — nunca cai de valores em silêncio', () => {
+    const envParcial = ['SERVICE_ROLE_KEY="sb_secret_abc123"', 'PUBLISHABLE_KEY="sb_publishable_ghi789"'].join('\n');
+    expect(extrairValoresDeSegredo(envParcial)).toEqual({
+      valores: ['sb_secret_abc123', 'sb_publishable_ghi789'],
+      faltando: ['SECRET_KEY'],
+    });
+  });
+
+  test('base vazia: as três chaves saem em faltando, valores vazio — nunca compara contra lista vazia como se tivesse achado tudo', () => {
+    expect(extrairValoresDeSegredo('')).toEqual({
+      valores: [],
+      faltando: ['SERVICE_ROLE_KEY', 'SECRET_KEY', 'PUBLISHABLE_KEY'],
+    });
   });
 });
