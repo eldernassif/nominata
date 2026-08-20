@@ -1,0 +1,77 @@
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  estatico:
+    name: estatico
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+      - run: npm ci
+      - run: npm run verify:types
+      - run: npm run verify:lint
+      - run: npm run verify:anti-fraude
+      - run: npm run verify:unit
+      - run: npm run verify:componente
+
+  banco:
+    name: banco
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+      - run: npm ci
+      - run: npx supabase start
+      - run: npm run verify:db
+      - run: npm run verify:rls-mutacao
+      # F0.9 (desvio declarado): o plano (tarefas.md linha 257) aloca
+      # cobertura-operacoes ao job "estatico", mas o script conecta no
+      # Postgres local (pg.Client contra DATABASE_URL) para catalogar as
+      # operações via pg_proc — não roda sem `supabase start`. Movido para
+      # "banco", o único job com o banco de pé antes desta perna.
+      - run: npm run verify:cobertura-operacoes
+      - run: npm run verify:contrato
+      - run: npm run verify:drift
+
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx supabase start
+      - run: npx tsx scripts/gerar-env-local.ts
+      - run: npm run verify:e2e
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
