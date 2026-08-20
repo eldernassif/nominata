@@ -122,19 +122,34 @@ function matarProcessosNaPorta(porta: number): void {
     return;
   }
 
-  let saida = '';
-  try {
-    saida = execSync(`lsof -ti tcp:${porta}`, { encoding: 'utf8' });
-  } catch {
-    return; // nenhum processo escutando a porta
-  }
-  for (const pid of pidsNaPortaPosix(saida)) {
+  if (process.platform === 'linux' || process.platform === 'darwin') {
+    let saida = '';
     try {
-      process.kill(Number(pid), 'SIGKILL');
-    } catch {
-      // já morreu entre o lsof e o kill
+      saida = execSync(`lsof -ti tcp:${porta}`, { encoding: 'utf8' });
+    } catch (erro) {
+      // lsof sai com status 1 quando a porta está livre — não é falha. Status
+      // diferente (ex.: 127, comando ausente) precisa gritar: F0.9 item (1)
+      // proíbe a plataforma desaparecer em silêncio quando o comando não
+      // existe no runner.
+      const status = (erro as { status?: number }).status;
+      if (status === 1) return;
+      throw new Error(
+        `matarProcessosNaPorta: "lsof" falhou em ${process.platform} (status ${status ?? 'desconhecido'}) — confirme que o pacote lsof está instalado no runner`,
+      );
     }
+    for (const pid of pidsNaPortaPosix(saida)) {
+      try {
+        process.kill(Number(pid), 'SIGKILL');
+      } catch {
+        // já morreu entre o lsof e o kill
+      }
+    }
+    return;
   }
+
+  throw new Error(
+    `matarProcessosNaPorta: plataforma "${process.platform}" não suportada (só win32, linux, darwin) — verify:e2e não pode matar o processo do preview aqui em silêncio`,
+  );
 }
 
 function aplicarMarcaNoDist(marca: string): void {
