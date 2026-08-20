@@ -1,4 +1,3 @@
--- QUEBRA PROPOSITAL F0.9 item 8b: 1 byte para provar que checar-drift barra migration ja aplicada
 -- F0.2: schemas, grants e superfície exposta.
 -- Layout do plano §4.1: app (tabelas, não exposto), api (único exposto), private (fechado).
 create schema app;
