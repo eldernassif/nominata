@@ -199,6 +199,15 @@ function rodarPrincipal(): void {
   const preview = spawn('npx wrangler pages dev dist --port 4173', {
     shell: true,
     stdio: 'inherit',
+    // F0.9: detached no POSIX cria um novo grupo de processos (pgid =
+    // preview.pid), condição para limparPreview() poder matar a árvore
+    // inteira com `process.kill(-preview.pid, ...)` — achado em CI real: o
+    // wrangler reinicia o workerd internamente ("crash unexpectedly"), e
+    // matar só quem está na porta deixa o supervisor (sh → npm exec →
+    // wrangler node) vivo, que reforka outro workerd e nunca deixa o
+    // processo principal sair (hang de 6h medido, dois PIDs de workerd
+    // órfãos só colhidos pelo cleanup do runner).
+    detached: process.platform !== 'win32',
   });
   let morto = false;
   preview.on('exit', () => {
@@ -222,20 +231,29 @@ function rodarPrincipal(): void {
   }
 
   function limparPreview(): void {
-    if (!morto && process.platform === 'win32') {
+    if (!morto) {
       try {
-        // /T derruba a árvore inteira (cmd → npm → node → wrangler → workerd);
-        // matar só o listener deixava workerd órfão (medido na F0.8.5).
-        execSync(`taskkill /PID ${preview.pid} /T /F`, { stdio: 'ignore' });
+        if (process.platform === 'win32') {
+          // /T derruba a árvore inteira (cmd → npm → node → wrangler →
+          // workerd); matar só o listener deixava workerd órfão (F0.8.5).
+          execSync(`taskkill /PID ${preview.pid} /T /F`, { stdio: 'ignore' });
+        } else if (preview.pid !== undefined) {
+          // grupo de processos inteiro (sh → npm exec → wrangler node →
+          // workerd) — exige o `detached: true` do spawn acima, que faz
+          // preview.pid virar o líder do grupo (pgid). Achado em CI real
+          // (F0.9): o wrangler reinicia o workerd sozinho ("crash
+          // unexpectedly"), e matar só quem está na porta deixa o supervisor
+          // vivo, que reforka outro workerd — hang de 6h medido, dois PIDs
+          // de workerd órfãos.
+          process.kill(-preview.pid, 'SIGKILL');
+        }
       } catch {
         // já morreu
       }
     }
-    // fallback (e único caminho fora do win32): mata pelo dono real da PORTA
-    // — pega a árvore toda porque o processo que efetivamente escuta 4173 é
-    // o workerd, não o shell do spawn. /T nem sempre alcança o workerd
-    // respawnado (medido na F0.8.6) e no POSIX matarProcessosNaPorta já cobre
-    // sozinho o caso normal (sem processo intermediário a matar antes).
+    // fallback: mata pelo dono real da PORTA — cobre o caso em que o grupo
+    // acima não pegou tudo (ex.: /T nem sempre alcança o workerd
+    // respawnado, medido na F0.8.6).
     matarProcessosNaPorta(PORTA_PREVIEW);
   }
 
