@@ -4,13 +4,13 @@
   "version": "0.1.0",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": "26.5.1"
   },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "verify": "npm run verify:types && npm run verify:lint && npm run verify:db && npm run verify:unit && npm run verify:componente && npm run verify:contrato && npm run verify:e2e",
+    "verify": "npm run verify:types && npm run verify:lint && npm run verify:anti-fraude && npm run verify:db && npm run verify:cobertura-operacoes && npm run verify:drift && npm run verify:unit && npm run verify:componente && npm run verify:contrato && npm run verify:e2e",
     "verify:rapido": "npm run verify:types && npm run verify:unit",
     "verify:types": "tsc --noEmit",
     "verify:lint": "eslint . --max-warnings=0",
@@ -19,7 +19,10 @@
     "verify:componente": "vitest run --project componente",
     "verify:contrato": "vitest run --project contrato",
     "verify:e2e": "tsx scripts/verify-e2e.ts",
-    "verify:rls-mutacao": "tsx scripts/rls-mutacao.ts"
+    "verify:rls-mutacao": "tsx scripts/rls-mutacao.ts",
+    "verify:anti-fraude": "tsx scripts/anti-fraude-testes.ts",
+    "verify:drift": "tsx scripts/checar-drift.ts",
+    "verify:cobertura-operacoes": "tsx scripts/cobertura-operacoes.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

@@ -69,6 +69,33 @@ export function pidsNaPorta(saidaNetstat: string, porta: number): string[] {
   return [...pids];
 }
 
+// F0.9: contraparte do pidsNaPorta acima para o runner do CI (ubuntu-latest,
+// que roda os containers Linux do supabase — windows-latest hospedado não
+// roda). `lsof -ti tcp:<porta>` já devolve um PID por linha, sem o parsing
+// posicional do netstat.
+export function pidsNaPortaPosix(saidaLsof: string): string[] {
+  return saidaLsof
+    .split(/\r?\n/)
+    .map((linha) => linha.trim())
+    .filter((linha) => linha !== '');
+}
+
+const CHAVES_SEGREDO = ['SERVICE_ROLE_KEY', 'SECRET_KEY', 'PUBLISHABLE_KEY'] as const;
+
+// F0.9 item (2): antes só filtrava as chaves ausentes de `supabase status -o
+// env` e comparava o dist contra o que sobrou — com as três ausentes, o gate
+// aprovava contra uma lista vazia. Agora nomeia a ausência em vez de escondê-la.
+export function extrairValoresDeSegredo(env: string): { valores: string[]; faltando: string[] } {
+  const valores: string[] = [];
+  const faltando: string[] = [];
+  for (const chave of CHAVES_SEGREDO) {
+    const valor = env.match(new RegExp(`^${chave}="([^"]+)"`, 'm'))?.[1];
+    if (valor) valores.push(valor);
+    else faltando.push(chave);
+  }
+  return { valores, faltando };
+}
+
 // -------- I/O --------
 
 function falhar(perna: string, detalhe: string): never {
@@ -94,19 +121,51 @@ function checarAusenciaDe404PosBuild(): void {
 }
 
 function matarProcessosNaPorta(porta: number): void {
-  let saida = '';
-  try {
-    saida = execSync(`netstat -ano | findstr :${porta}`, { encoding: 'utf8' });
-  } catch {
-    return; // nenhum processo escutando a porta
-  }
-  for (const pid of pidsNaPorta(saida, porta)) {
+  if (process.platform === 'win32') {
+    let saida = '';
     try {
-      execSync(`taskkill /PID ${pid} /F`, { stdio: 'ignore' });
+      saida = execSync(`netstat -ano | findstr :${porta}`, { encoding: 'utf8' });
     } catch {
-      // já morreu entre o netstat e o taskkill
+      return; // nenhum processo escutando a porta
     }
+    for (const pid of pidsNaPorta(saida, porta)) {
+      try {
+        execSync(`taskkill /PID ${pid} /F`, { stdio: 'ignore' });
+      } catch {
+        // já morreu entre o netstat e o taskkill
+      }
+    }
+    return;
   }
+
+  if (process.platform === 'linux' || process.platform === 'darwin') {
+    let saida = '';
+    try {
+      saida = execSync(`lsof -ti tcp:${porta}`, { encoding: 'utf8' });
+    } catch (erro) {
+      // lsof sai com status 1 quando a porta está livre — não é falha. Status
+      // diferente (ex.: 127, comando ausente) precisa gritar: F0.9 item (1)
+      // proíbe a plataforma desaparecer em silêncio quando o comando não
+      // existe no runner.
+      const status = (erro as { status?: number }).status;
+      if (status === 1) return;
+      throw new Error(
+        `matarProcessosNaPorta: "lsof" falhou em ${process.platform} (status ${status ?? 'desconhecido'}) — confirme que o pacote lsof está instalado no runner`,
+      );
+    }
+    for (const pid of pidsNaPortaPosix(saida)) {
+      try {
+        process.kill(Number(pid), 'SIGKILL');
+      } catch {
+        // já morreu entre o lsof e o kill
+      }
+    }
+    return;
+  }
+
+  throw new Error(
+    `matarProcessosNaPorta: plataforma "${process.platform}" não suportada (só win32, linux, darwin) — verify:e2e não pode matar o processo do preview aqui em silêncio`,
+  );
 }
 
 function aplicarMarcaNoDist(marca: string): void {
@@ -140,6 +199,15 @@ function rodarPrincipal(): void {
   const preview = spawn('npx wrangler pages dev dist --port 4173', {
     shell: true,
     stdio: 'inherit',
+    // F0.9: detached no POSIX cria um novo grupo de processos (pgid =
+    // preview.pid), condição para limparPreview() poder matar a árvore
+    // inteira com `process.kill(-preview.pid, ...)` — achado em CI real: o
+    // wrangler reinicia o workerd internamente ("crash unexpectedly"), e
+    // matar só quem está na porta deixa o supervisor (sh → npm exec →
+    // wrangler node) vivo, que reforka outro workerd e nunca deixa o
+    // processo principal sair (hang de 6h medido, dois PIDs de workerd
+    // órfãos só colhidos pelo cleanup do runner).
+    detached: process.platform !== 'win32',
   });
   let morto = false;
   preview.on('exit', () => {
@@ -165,14 +233,27 @@ function rodarPrincipal(): void {
   function limparPreview(): void {
     if (!morto) {
       try {
-        // /T derruba a árvore inteira (cmd → npm → node → wrangler → workerd);
-        // matar só o listener deixava workerd órfão (medido na F0.8.5).
-        execSync(`taskkill /PID ${preview.pid} /T /F`, { stdio: 'ignore' });
+        if (process.platform === 'win32') {
+          // /T derruba a árvore inteira (cmd → npm → node → wrangler →
+          // workerd); matar só o listener deixava workerd órfão (F0.8.5).
+          execSync(`taskkill /PID ${preview.pid} /T /F`, { stdio: 'ignore' });
+        } else if (preview.pid !== undefined) {
+          // grupo de processos inteiro (sh → npm exec → wrangler node →
+          // workerd) — exige o `detached: true` do spawn acima, que faz
+          // preview.pid virar o líder do grupo (pgid). Achado em CI real
+          // (F0.9): o wrangler reinicia o workerd sozinho ("crash
+          // unexpectedly"), e matar só quem está na porta deixa o supervisor
+          // vivo, que reforka outro workerd — hang de 6h medido, dois PIDs
+          // de workerd órfãos.
+          process.kill(-preview.pid, 'SIGKILL');
+        }
       } catch {
         // já morreu
       }
     }
-    // fallback: /T nem sempre alcança o workerd respawnado (medido na F0.8.6)
+    // fallback: mata pelo dono real da PORTA — cobre o caso em que o grupo
+    // acima não pegou tudo (ex.: /T nem sempre alcança o workerd
+    // respawnado, medido na F0.8.6).
     matarProcessosNaPorta(PORTA_PREVIEW);
   }
 
@@ -218,9 +299,14 @@ function rodarPrincipal(): void {
 
     // --- nenhum segredo real no dist (fresco, pós-build) ---
     const env = execSync('npx supabase status -o env', { encoding: 'utf8' });
-    const valores = ['SERVICE_ROLE_KEY', 'SECRET_KEY', 'PUBLISHABLE_KEY']
-      .map((chave) => env.match(new RegExp(`^${chave}="([^"]+)"`, 'm'))?.[1])
-      .filter((v): v is string => Boolean(v));
+    const { valores, faltando } = extrairValoresDeSegredo(env);
+    if (faltando.length > 0) {
+      limparPreview();
+      falhar(
+        'segredo-extracao',
+        `não foi possível extrair de "supabase status -o env": ${faltando.join(', ')} — base parcial/vazia nunca aprova`,
+      );
+    }
     const achados = segredosNoDist(valores);
     if (achados.length > 0) {
       limparPreview();
